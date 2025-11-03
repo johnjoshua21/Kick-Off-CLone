@@ -14,6 +14,7 @@ public interface BlockedSlotService {
     BlockedSlotResponseDTO getBlockedSlotById(Long id);
     void deleteBlockedSlot(Long id);
 
+
     List<BlockedSlotResponseDTO> getBlockedSlotsByTurfId(Long turfId);
     List<BlockedSlotResponseDTO> getBlockedSlotsByTurfIdAndDate(Long turfId, LocalDate date);
     List<BlockedSlotResponseDTO> getBlockedSlotsByDate(LocalDate date);

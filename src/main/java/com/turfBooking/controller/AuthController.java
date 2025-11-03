@@ -87,6 +87,47 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/register-admin")
+    public ResponseEntity<?> registerAdmin(@RequestBody UserRegistrationDto registrationDto) {
+        try {
+            // Check if user already exists
+            if (userService.existsByPhone(registrationDto.getPhone())) {
+                return ResponseEntity.badRequest().body("Phone number already registered");
+            }
+
+            // Validate required fields
+            if (registrationDto.getName() == null || registrationDto.getName().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Name is required");
+            }
+            if (registrationDto.getPhone() == null || registrationDto.getPhone().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Phone is required");
+            }
+            if (registrationDto.getPassword() == null || registrationDto.getPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Password is required");
+            }
+
+            // Create admin user
+            User user = new User();
+            user.setName(registrationDto.getName().trim());
+            user.setPhone(registrationDto.getPhone().trim());
+            user.setPassword(registrationDto.getPassword());
+            user.setRole(UserRole.ADMIN);  // Set as ADMIN
+
+            // Create user with encrypted password
+            User savedUser = userService.createUserEntity(user);
+
+            // Generate token for immediate login after registration
+            final UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getPhone());
+            final CustomUserDetails customUserDetails = (CustomUserDetails) userDetails;
+            final String token = jwtTokenUtil.generateToken(userDetails, customUserDetails.getRole());
+
+            return ResponseEntity.ok(new JwtResponse(token, customUserDetails.getRole(), customUserDetails.getUserId()));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Admin registration failed: " + e.getMessage());
+        }
+    }
+
     private void authenticate(String phone, String password) throws Exception {
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(phone, password));
