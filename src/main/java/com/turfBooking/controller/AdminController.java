@@ -1,6 +1,6 @@
 package com.turfBooking.controller;
 
-
+// Im the admin
 import com.turfBooking.dto.BookingResponseDTO;
 import com.turfBooking.dto.TurfResponseDTO;
 import com.turfBooking.dto.UserResponseDTO;
@@ -12,7 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
+//
 @RestController
 @RequestMapping("/api/admin")
 @CrossOrigin
