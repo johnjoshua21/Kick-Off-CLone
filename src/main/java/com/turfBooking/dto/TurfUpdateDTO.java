@@ -1,4 +1,3 @@
-// TurfUpdateDTO.java
 package com.turfBooking.dto;
 
 import com.turfBooking.enums.SportType;
@@ -6,6 +5,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalTime;
+import java.util.List;
 
 public class TurfUpdateDTO {
 
@@ -29,6 +29,9 @@ public class TurfUpdateDTO {
     private LocalTime operatingStartTime;
 
     private LocalTime operatingEndTime;
+
+    // NEW: Image URLs
+    private List<String> imageUrls;
 
     // Constructors
     public TurfUpdateDTO() {}
@@ -57,5 +60,7 @@ public class TurfUpdateDTO {
 
     public LocalTime getOperatingEndTime() { return operatingEndTime; }
     public void setOperatingEndTime(LocalTime operatingEndTime) { this.operatingEndTime = operatingEndTime; }
-}
 
+    public List<String> getImageUrls() { return imageUrls; }
+    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
+}

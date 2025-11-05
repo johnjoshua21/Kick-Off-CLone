@@ -1,12 +1,9 @@
-// TurfResponseDTO.java
 package com.turfBooking.dto;
 
 import com.turfBooking.enums.SportType;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Size;
-
 import java.math.BigDecimal;
 import java.time.LocalTime;
+import java.util.List;
 
 public class TurfResponseDTO {
 
@@ -24,6 +21,10 @@ public class TurfResponseDTO {
     private String ownerPhone;
     private int totalBookings;
     private int totalBlockedSlots;
+
+    // NEW: Image fields
+    private List<String> imageUrls;
+    private String primaryImageUrl;
 
     // Constructors
     public TurfResponseDTO() {}
@@ -44,6 +45,28 @@ public class TurfResponseDTO {
         this.ownerId = ownerId;
         this.ownerName = ownerName;
         this.ownerPhone = ownerPhone;
+    }
+
+    // Full constructor with images
+    public TurfResponseDTO(Long id, String name, String phone, String location, SportType type,
+                           BigDecimal pricePerSlot, String description,
+                           LocalTime operatingStartTime, LocalTime operatingEndTime,
+                           Long ownerId, String ownerName, String ownerPhone,
+                           List<String> imageUrls, String primaryImageUrl) {
+        this.id = id;
+        this.name = name;
+        this.phone = phone;
+        this.location = location;
+        this.type = type;
+        this.pricePerSlot = pricePerSlot;
+        this.description = description;
+        this.operatingStartTime = operatingStartTime;
+        this.operatingEndTime = operatingEndTime;
+        this.ownerId = ownerId;
+        this.ownerName = ownerName;
+        this.ownerPhone = ownerPhone;
+        this.imageUrls = imageUrls;
+        this.primaryImageUrl = primaryImageUrl;
     }
 
     // Getters and Setters
@@ -88,5 +111,10 @@ public class TurfResponseDTO {
 
     public int getTotalBlockedSlots() { return totalBlockedSlots; }
     public void setTotalBlockedSlots(int totalBlockedSlots) { this.totalBlockedSlots = totalBlockedSlots; }
-}
 
+    public List<String> getImageUrls() { return imageUrls; }
+    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
+
+    public String getPrimaryImageUrl() { return primaryImageUrl; }
+    public void setPrimaryImageUrl(String primaryImageUrl) { this.primaryImageUrl = primaryImageUrl; }
+}

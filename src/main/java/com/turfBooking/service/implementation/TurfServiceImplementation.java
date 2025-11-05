@@ -8,9 +8,11 @@ import com.turfBooking.entity.Turf;
 import com.turfBooking.entity.User;
 import com.turfBooking.entity.Booking;
 import com.turfBooking.entity.BlockedSlot;
+import com.turfBooking.entity.TurfImage;
 import com.turfBooking.enums.SportType;
 import com.turfBooking.repository.TurfRepository;
 import com.turfBooking.repository.UserRepository;
+import com.turfBooking.repository.TurfImageRepository;
 import com.turfBooking.service.interfaces.TurfService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,9 @@ public class TurfServiceImplementation implements TurfService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private TurfImageRepository turfImageRepository;
 
     @Override
     public TurfResponseDTO createTurf(TurfRequestDTO turfRequestDTO) {
@@ -61,10 +66,25 @@ public class TurfServiceImplementation implements TurfService {
         turf.setOperatingEndTime(turfRequestDTO.getOperatingEndTime());
         turf.setOwner(owner);
 
-        // Save turf
+        // Save turf first
         Turf savedTurf = turfRepository.save(turf);
 
-        return convertToResponseDTO(savedTurf);
+        // Handle images - ADD THIS BLOCK
+        if (turfRequestDTO.getImageUrls() != null && !turfRequestDTO.getImageUrls().isEmpty()) {
+            for (int i = 0; i < turfRequestDTO.getImageUrls().size(); i++) {
+                TurfImage image = new TurfImage();
+                image.setImageUrl(turfRequestDTO.getImageUrls().get(i));
+                image.setImageName("Image " + (i + 1));
+                image.setPrimary(i == 0); // First image is primary
+                image.setTurf(savedTurf);
+                turfImageRepository.save(image);
+            }
+
+            // Refresh the turf to get the images
+            savedTurf = turfRepository.findById(savedTurf.getId()).orElse(savedTurf);
+        }
+
+        return convertToDetailedResponseDTO(savedTurf);
     }
 
     @Override
@@ -81,7 +101,7 @@ public class TurfServiceImplementation implements TurfService {
     public List<TurfResponseDTO> getAllTurfs() {
         return turfRepository.findAll()
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(this::convertToDetailedResponseDTO) // Changed from convertToResponseDTO
                 .collect(Collectors.toList());
     }
 
@@ -138,7 +158,26 @@ public class TurfServiceImplementation implements TurfService {
             turf.setOperatingEndTime(turfUpdateDTO.getOperatingEndTime());
         }
 
+        // Handle image updates - ADD THIS BLOCK
+        if (turfUpdateDTO.getImageUrls() != null) {
+            // Delete existing images
+            turfImageRepository.deleteByTurfId(id);
+
+            // Add new images
+            for (int i = 0; i < turfUpdateDTO.getImageUrls().size(); i++) {
+                TurfImage image = new TurfImage();
+                image.setImageUrl(turfUpdateDTO.getImageUrls().get(i));
+                image.setImageName("Image " + (i + 1));
+                image.setPrimary(i == 0);
+                image.setTurf(turf);
+                turfImageRepository.save(image);
+            }
+        }
+
         Turf updatedTurf = turfRepository.save(turf);
+        // Refresh to get updated images
+        updatedTurf = turfRepository.findById(updatedTurf.getId()).orElse(updatedTurf);
+
         return convertToDetailedResponseDTO(updatedTurf);
     }
 
@@ -147,6 +186,7 @@ public class TurfServiceImplementation implements TurfService {
         if (!turfRepository.existsById(id)) {
             throw new RuntimeException("Turf not found with id: " + id);
         }
+        // Images will be deleted automatically due to cascade
         turfRepository.deleteById(id);
     }
 
@@ -164,7 +204,7 @@ public class TurfServiceImplementation implements TurfService {
     public List<TurfResponseDTO> getTurfsBySportType(SportType type) {
         return turfRepository.findByType(type)
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(this::convertToDetailedResponseDTO) // Changed
                 .collect(Collectors.toList());
     }
 
@@ -173,7 +213,7 @@ public class TurfServiceImplementation implements TurfService {
     public List<TurfResponseDTO> searchTurfsByLocation(String location) {
         return turfRepository.findByLocationContainingIgnoreCase(location)
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(this::convertToDetailedResponseDTO) // Changed
                 .collect(Collectors.toList());
     }
 
@@ -182,7 +222,7 @@ public class TurfServiceImplementation implements TurfService {
     public List<TurfResponseDTO> searchTurfsByName(String name) {
         return turfRepository.findByNameContainingIgnoreCase(name)
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(this::convertToDetailedResponseDTO) // Changed
                 .collect(Collectors.toList());
     }
 
@@ -191,7 +231,7 @@ public class TurfServiceImplementation implements TurfService {
     public List<TurfResponseDTO> getTurfsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
         return turfRepository.findByPricePerSlotBetween(minPrice, maxPrice)
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(this::convertToDetailedResponseDTO) // Changed
                 .collect(Collectors.toList());
     }
 
@@ -205,7 +245,7 @@ public class TurfServiceImplementation implements TurfService {
                         searchDTO.getMinPrice(),
                         searchDTO.getMaxPrice()
                 ).stream()
-                .map(this::convertToResponseDTO)
+                .map(this::convertToDetailedResponseDTO) // Changed
                 .collect(Collectors.toList());
     }
 
@@ -219,7 +259,6 @@ public class TurfServiceImplementation implements TurfService {
         LocalTime currentTime = turf.getOperatingStartTime();
         LocalTime endTime = turf.getOperatingEndTime();
 
-        // Generate hourly slots (you can modify this logic based on your requirements)
         while (currentTime.isBefore(endTime)) {
             LocalTime slotEndTime = currentTime.plusHours(1);
             if (slotEndTime.isAfter(endTime)) {
@@ -242,16 +281,13 @@ public class TurfServiceImplementation implements TurfService {
         Turf turf = turfRepository.findById(turfId)
                 .orElseThrow(() -> new RuntimeException("Turf not found with id: " + turfId));
 
-        // Check if time is within operating hours
         if (startTime.isBefore(turf.getOperatingStartTime()) || endTime.isAfter(turf.getOperatingEndTime())) {
             return false;
         }
 
-        // Check for existing bookings
         if (turf.getBookings() != null) {
             for (Booking booking : turf.getBookings()) {
                 if (booking.getBookingDate().equals(date)) {
-                    // Check if requested time overlaps with existing booking
                     if (!(endTime.isBefore(booking.getSlotStartTime()) || startTime.isAfter(booking.getSlotEndTime()))) {
                         return false;
                     }
@@ -259,11 +295,9 @@ public class TurfServiceImplementation implements TurfService {
             }
         }
 
-        // Check for blocked slots
         if (turf.getBlockedSlots() != null) {
             for (BlockedSlot blockedSlot : turf.getBlockedSlots()) {
                 if (blockedSlot.getBlockedDate().equals(date)) {
-                    // Check if requested time overlaps with blocked slot
                     if (!(endTime.isBefore(blockedSlot.getStartTime()) || startTime.isAfter(blockedSlot.getEndTime()))) {
                         return false;
                     }
@@ -279,7 +313,7 @@ public class TurfServiceImplementation implements TurfService {
     public List<TurfResponseDTO> getTurfsOrderedByPopularity() {
         return turfRepository.findTurfsOrderedByBookingCount()
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(this::convertToDetailedResponseDTO) // Changed
                 .collect(Collectors.toList());
     }
 
@@ -288,7 +322,7 @@ public class TurfServiceImplementation implements TurfService {
     public List<TurfResponseDTO> getAvailableTurfsOnDate(LocalDate date) {
         return turfRepository.findAvailableTurfsOnDate(date)
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(this::convertToDetailedResponseDTO) // Changed
                 .collect(Collectors.toList());
     }
 
@@ -325,25 +359,7 @@ public class TurfServiceImplementation implements TurfService {
         return turfRepository.existsByNameAndOwner(name, owner);
     }
 
-    // Helper method to convert Turf entity to basic TurfResponseDTO
-    private TurfResponseDTO convertToResponseDTO(Turf turf) {
-        return new TurfResponseDTO(
-                turf.getId(),
-                turf.getName(),
-                turf.getPhone(),
-                turf.getLocation(),
-                turf.getType(),
-                turf.getPricePerSlot(),
-                turf.getDescription(),
-                turf.getOperatingStartTime(),
-                turf.getOperatingEndTime(),
-                turf.getOwner().getId(),
-                turf.getOwner().getName(),
-                turf.getOwner().getPhone()
-        );
-    }
-
-    // Helper method to convert Turf entity to detailed TurfResponseDTO with counts
+    // CORRECTED: This method now properly fetches and includes images
     private TurfResponseDTO convertToDetailedResponseDTO(Turf turf) {
         TurfResponseDTO responseDTO = new TurfResponseDTO(
                 turf.getId(),
@@ -360,9 +376,24 @@ public class TurfServiceImplementation implements TurfService {
                 turf.getOwner().getPhone()
         );
 
-        // Set counts (handle null collections)
+        // Set counts
         responseDTO.setTotalBookings(turf.getBookings() != null ? turf.getBookings().size() : 0);
         responseDTO.setTotalBlockedSlots(turf.getBlockedSlots() != null ? turf.getBlockedSlots().size() : 0);
+
+        // CORRECTED: Fetch images from database and add to response
+        List<TurfImage> images = turfImageRepository.findByTurfId(turf.getId());
+        if (images != null && !images.isEmpty()) {
+            List<String> imageUrls = images.stream()
+                    .map(TurfImage::getImageUrl)
+                    .collect(Collectors.toList());
+            responseDTO.setImageUrls(imageUrls);
+
+            // Set primary image
+            images.stream()
+                    .filter(TurfImage::isPrimary)
+                    .findFirst()
+                    .ifPresent(img -> responseDTO.setPrimaryImageUrl(img.getImageUrl()));
+        }
 
         return responseDTO;
     }

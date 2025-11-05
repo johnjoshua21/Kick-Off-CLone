@@ -1,10 +1,10 @@
-// TurfRequestDTO.java
 package com.turfBooking.dto;
 
 import com.turfBooking.enums.SportType;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalTime;
+import java.util.List;
 
 public class TurfRequestDTO {
 
@@ -39,12 +39,16 @@ public class TurfRequestDTO {
     @NotNull(message = "Owner ID is required")
     private Long ownerId;
 
+    // NEW: Image URLs
+    private List<String> imageUrls;
+
     // Constructors
     public TurfRequestDTO() {}
 
     public TurfRequestDTO(String name, String phone, String location, SportType type,
                           BigDecimal pricePerSlot, String description,
-                          LocalTime operatingStartTime, LocalTime operatingEndTime, Long ownerId) {
+                          LocalTime operatingStartTime, LocalTime operatingEndTime, Long ownerId,
+                          List<String> imageUrls) {
         this.name = name;
         this.phone = phone;
         this.location = location;
@@ -54,6 +58,7 @@ public class TurfRequestDTO {
         this.operatingStartTime = operatingStartTime;
         this.operatingEndTime = operatingEndTime;
         this.ownerId = ownerId;
+        this.imageUrls = imageUrls;
     }
 
     // Getters and Setters
@@ -83,5 +88,7 @@ public class TurfRequestDTO {
 
     public Long getOwnerId() { return ownerId; }
     public void setOwnerId(Long ownerId) { this.ownerId = ownerId; }
-}
 
+    public List<String> getImageUrls() { return imageUrls; }
+    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
+}
